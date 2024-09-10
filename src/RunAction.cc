@@ -170,13 +170,13 @@ void RunAction::BeginOfRunAction(const G4Run* /*run*/)
 
   // Open an output file
   //
-  G4String fileName = "B4.root";
+  //G4String fileName = "B4";
   // Other supported output types:
   // G4String fileName = "B4.csv";
   // G4String fileName = "B4.hdf5";
   // G4String fileName = "B4.xml";
-  //analysisManager->SetFileName(fileName);
-   analysisManager->OpenFile(fileName);  
+  // analysisManager->SetFileName("B4.root");
+   analysisManager->OpenFile();  
    G4cout << "Using " << analysisManager->GetType() << G4endl;
 }
 
