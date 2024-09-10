@@ -1,0 +1,22 @@
+# Macro file for example B4
+# 
+# To be run preferably in batch, without graphics:
+# % exampleB4[a,b,c,d] run2.mac
+#
+/run/numberOfThreads 1
+#/control/cout/ignoreThreadsExcept 0
+#
+/run/initialize
+#
+# Default kinemtics: 
+# pion 20 GeV in direction (0.,0.,1.)
+# 1000 events
+#
+
+
+/analysis/setFileName 6GeV_pion_3000events
+/gun/particle pi-
+/gun/energy 6
+
+/run/printProgress 200
+/run/beamOn 3000

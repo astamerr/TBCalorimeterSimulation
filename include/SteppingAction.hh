@@ -1,0 +1,36 @@
+#ifndef SteppingAction_h
+#define SteppingAction_h 1
+
+#include "G4UserSteppingAction.hh"
+#include "globals.hh"
+#include "EventAction.hh"
+
+class EventAction;
+
+class G4LogicalVolume;
+
+
+namespace B4c
+{
+/// Stepping action class
+/// 
+
+class SteppingAction : public G4UserSteppingAction
+{
+  public:
+    SteppingAction(EventAction* eventAction);
+    virtual ~SteppingAction();
+
+    // method from the base class
+    virtual void UserSteppingAction(const G4Step*);
+
+  private:
+    EventAction*  fEventAction;
+    G4LogicalVolume* fScoringVolume;
+};
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+}
+
+#endif
