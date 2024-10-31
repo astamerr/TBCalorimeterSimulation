@@ -68,7 +68,7 @@ class CalorimeterSD : public G4VSensitiveDetector
   private:
     CalorHitsCollection* fHitsCollection = nullptr;
     G4int fNofLayers = 0;
-    const G4int NCell = B4c::fNofPixelsXY * B4c::fNofPixelsXY * B4c::fNofLayers;
+    const G4int NCell = (B4c::fNofPixelsXY1 * B4c::fNofPixelsXY1 * B4c::fNofLayers1) + (B4c::fNofPixelsXY2 * B4c::fNofPixelsXY2 * B4c::fNofLayers2);
     EventAction*  fEventAction;
     
     std::vector<std::vector<G4double>> edep_cell;

@@ -89,6 +89,7 @@ void DetectorConstruction::DefineMaterials()
   nistManager->FindOrBuildMaterial("G4_Fe");
   nistManager->FindOrBuildMaterial("G4_STAINLESS-STEEL");
   nistManager->FindOrBuildMaterial("G4_Cu") ;
+  nistManager->FindOrBuildMaterial("G4_AIR") ;
 
 
   // define Elements
@@ -115,10 +116,10 @@ void DetectorConstruction::DefineMaterials()
   // Ar/CO2 mixture
   G4Material* Argon = nistManager->FindOrBuildMaterial("G4_Ar");
   G4Material* CarbonDioxide = nistManager->FindOrBuildMaterial("G4_CARBON_DIOXIDE");
-  G4double mixtureDensity = (Argon->GetDensity() * 70/100.0 + CarbonDioxide->GetDensity() * 30/100.0) ;
+  G4double mixtureDensity = (Argon->GetDensity() * 93/100.0 + CarbonDioxide->GetDensity() * 7/100.0) ;
   G4Material *ArCO2 = new G4Material("Ar/CO2",mixtureDensity,2) ;
-  ArCO2->AddMaterial(Argon, 0.7) ;
-  ArCO2->AddMaterial(CarbonDioxide, 0.3) ;   
+  ArCO2->AddMaterial(Argon, 0.93) ;
+  ArCO2->AddMaterial(CarbonDioxide, 0.07) ;   
   
   //FR4//
   //Epoxy (for FR4 )
@@ -149,12 +150,17 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes()
 {
   // Geometry parameters
   
-  auto calorSizeXY  =  fNofPixelsXY * cellSizeXY; //10.*cm; //
-  auto layerThickness = absoThickness + DriftThickness + gapThickness + PCBThickness;
-  auto calorThickness = fNofLayers * layerThickness;
-  auto worldSizeXY = 1.2 * calorSizeXY;
-  auto worldSizeZ  = 1.2 * calorThickness;
-
+  auto calorSizeXY1  =  fNofPixelsXY1 * cellSizeXY; //10.*cm; //
+  auto calorSizeXY2  =  fNofPixelsXY2 * cellSizeXY;
+  
+  auto layerThickness1 = airGapThickness + absoThickness1 + airGapThickness + DriftThickness + gapThickness + PCBThickness;
+  auto calorThickness1 = fNofLayers1 * layerThickness1;
+  
+  auto layerThickness2 = airGapThickness + absoThickness2 + airGapThickness + DriftThickness + gapThickness + PCBThickness;
+  auto calorThickness2 = fNofLayers2 * layerThickness2;
+  
+  auto worldSizeXY = 1.9 * std::max(calorSizeXY1, calorSizeXY2);
+  auto worldSizeZ  = 1.9 * (calorThickness1 + calorThickness2);
   // Get materials
   auto defaultMaterial = G4Material::GetMaterial("Galactic");
   //auto absorberMaterial = G4Material::GetMaterial("G4_Pb");
@@ -165,6 +171,7 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes()
   auto absorberMaterial = G4Material::GetMaterial("G4_STAINLESS-STEEL");
   auto PCBMaterial = G4Material::GetMaterial("FR4");
   auto driftMaterial = G4Material::GetMaterial("G4_Cu");
+  auto air = G4Material::GetMaterial("G4_AIR");
   
   //auto absorberMaterial = G4Material::GetMaterial("G4_STAINLESS-STEEL");
   //auto PCBMaterial = G4Material::GetMaterial("G4_STAINLESS-STEEL");
@@ -206,133 +213,181 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes()
   //
   // Calorimeter
   //
-  auto calorimeterS
+  auto calorimeterS1
     = new G4Box("Calorimeter",     // its name
-                 calorSizeXY/2, calorSizeXY/2, calorThickness/2); // its size
+                 calorSizeXY1/2, calorSizeXY1/2, calorThickness1/2); // its size
 
-  auto calorLV
+  auto calorLV1
     = new G4LogicalVolume(
-                 calorimeterS,     // its solid
+                 calorimeterS1,     // its solid
                  defaultMaterial,  // its material
-                 "Calorimeter",     // its name
+                 "Calorimeter1",     // its name
                   0, 0, 0);
 
   new G4PVPlacement(
                  0,                // no rotation
                  G4ThreeVector(),  // at (0,0,0)
-                 calorLV,          // its logical volume
-                 "Calorimeter",    // its name
+                 calorLV1,          // its logical volume
+                 "Calorimeter1",    // its name
                  worldLV,          // its mother  volume
                  false,            // no boolean operation
                  0,                // copy number
                  fCheckOverlaps);  // checking overlaps
 
-    fScoringVolume = calorLV;
+    fScoringVolume = calorLV1;
 
     //
     // Row plane - Y Slice
     //
-    auto rowS
-      = new G4Box("Row",           // its name
-                   calorSizeXY/2, cellSizeXY/2, calorThickness/2); //its size
+    auto rowS1
+      = new G4Box("Row1",           // its name
+                   calorSizeXY1/2, cellSizeXY/2, calorThickness1/2); //its size
 
-    auto rowLV
+    auto rowLV1
       = new G4LogicalVolume(
-                   rowS,           // its solid
+                   rowS1,           // its solid
                    defaultMaterial,  // its material
-                   "Row");         // its name
+                   "Row1");         // its name
 
     new G4PVReplica(
-                   "Row",          // its name
-                   rowLV,          // its logical volume
-                   calorLV,          // its mother
+                   "Row1",          // its name
+                   rowLV1,          // its logical volume
+                   calorLV1,          // its mother
                    kYAxis,           // axis of replication
-                   fNofPixelsXY,        // number of replica
+                   fNofPixelsXY1,        // number of replica
                    cellSizeXY);  // witdth of replica
     
     //
     // Columns  - X Slice
     //
-    auto cellS
-      = new G4Box("Cell",           // its name
-                   cellSizeXY/2, cellSizeXY/2, calorThickness/2); //its size
+    auto cellS1
+      = new G4Box("Cell1",           // its name
+                   cellSizeXY/2, cellSizeXY/2, calorThickness1/2); //its size
 
-    auto cellLV
+    auto cellLV1
       = new G4LogicalVolume(
-                   cellS,           // its solid
+                   cellS1,           // its solid
                    defaultMaterial,  // its material
-                   "Cell");         // its name
+                   "Cell1");         // its name
 
     new G4PVReplica(
-                   "Cell",          // its name
-                   cellLV,          // its logical volume
-                   rowLV,          // its mother
+                   "Cell1",          // its name
+                   cellLV1,          // its logical volume
+                   rowLV1,          // its mother
                    kXAxis,           // axis of replication
-                   fNofPixelsXY,        // number of replica
+                   fNofPixelsXY1,        // number of replica
                    cellSizeXY);  // witdth of replica
  
   //
   // Layer
   //
-  auto layerS
+  auto layerS1
     = new G4Box("Layer",           // its name
-                 cellSizeXY/2, cellSizeXY/2, layerThickness/2); //its size
+                 cellSizeXY/2, cellSizeXY/2, layerThickness1/2); //its size
 
-  auto layerLV
+  auto layerLV1
     = new G4LogicalVolume(
-                 layerS,           // its solid
+                 layerS1,           // its solid
                  defaultMaterial,  // its material
-                 "Layer");         // its name
+                 "Layer1");         // its name
 
   new G4PVReplica(
-                 "Layer",          // its name
-                 layerLV,          // its logical volume
-                 cellLV,          // its mother
+                 "Layer1",          // its name
+                 layerLV1,          // its logical volume
+                 cellLV1,          // its mother
                  kZAxis,           // axis of replication
-                 fNofLayers,        // number of replica
-                 layerThickness);  // witdth of replica
+                 fNofLayers1,        // number of replica
+                 layerThickness1);  // witdth of replica
+
+
+   //
+  // Air gap
+  //
+  auto airGap1
+    = new G4Box("airGap1",            // its name
+                cellSizeXY/2, cellSizeXY/2, airGapThickness/2); // its size
+
+  auto airGapLV1
+    = new G4LogicalVolume(
+                 airGap1,        // its solid
+                 air,		 // its material
+                 "airGapLV1");        // its name
+
+   new G4PVPlacement(
+                 0,                // no rotation
+                 G4ThreeVector(0., 0., -layerThickness1/2 + airGapThickness/2), // its position
+                 airGapLV1,       // its logical volume
+                 "airGapLV1",           // its name
+                 layerLV1,          // its mother  volume
+                 false,            // no boolean operation
+                 0,                // copy number
+                 fCheckOverlaps);  // checking overlaps
 
   //
   // Absorber
   //
-  auto absorberS
-    = new G4Box("Abso",            // its name
-                cellSizeXY/2, cellSizeXY/2, absoThickness/2); // its size
+  auto absorberS1
+    = new G4Box("Abso1",            // its name
+                cellSizeXY/2, cellSizeXY/2, absoThickness1/2); // its size
 
-  auto absorberLV
+  auto absorberLV1
     = new G4LogicalVolume(
-                 absorberS,        // its solid
+                 absorberS1,        // its solid
                  absorberMaterial, // its material
-                 "AbsoLV");        // its name
+                 "AbsoLV1");        // its name
 
    new G4PVPlacement(
                  0,                // no rotation
-                 G4ThreeVector(0., 0., -layerThickness/2 + absoThickness/2), // its position
-                 absorberLV,       // its logical volume
-                 "Abso",           // its name
-                 layerLV,          // its mother  volume
+                 G4ThreeVector(0., 0., -layerThickness1/2 + airGapThickness + absoThickness1/2), // its position
+                 absorberLV1,       // its logical volume
+                 "Abso1",           // its name
+                 layerLV1,          // its mother  volume
                  false,            // no boolean operation
                  0,                // copy number
                  fCheckOverlaps);  // checking overlaps
+                 
+      //
+  // Air gap
   //
-  // Copper Drift
+  auto airGap1_2
+    = new G4Box("airGap1_2",            // its name
+                cellSizeXY/2, cellSizeXY/2, airGapThickness/2); // its size
+
+  auto airGapLV1_2
+    = new G4LogicalVolume(
+                 airGap1_2,        // its solid
+                 air,		 // its material
+                 "airGapLV1_2");        // its name
+
+   new G4PVPlacement(
+                 0,                // no rotation
+                 G4ThreeVector(0., 0., -layerThickness1/2 + airGapThickness + absoThickness1 + airGapThickness/2), // its position
+                 airGapLV1_2,       // its logical volume
+                 "airGapLV1_2",           // its name
+                 layerLV1,          // its mother  volume
+                 false,            // no boolean operation
+                 0,                // copy number
+                 fCheckOverlaps);  // checking overlaps
+                 
   //
-    auto DriftBoard
-    = new G4Box("Drift",             // its name
+  // Drift (3 mm FR4 + 13 um Copper)
+  //
+    auto DriftBoard1
+    = new G4Box("Drift1",             // its name
                 cellSizeXY/2, cellSizeXY/2, DriftThickness/2); // its size
 
-  auto DriftBoardLV
+  auto DriftBoardLV1
     = new G4LogicalVolume(
-                 DriftBoard,             // its solid
-                 driftMaterial,      // its material
-                 "driftBoardLV");         // its name
+                 DriftBoard1,             // its solid
+                 PCBMaterial,      // its material
+                 "driftBoardLV1");         // its name
 
   new G4PVPlacement(
                  0,                // no rotation
-                 G4ThreeVector(0., 0., -layerThickness/2 + absoThickness + DriftThickness/2), // its position
-                 DriftBoardLV,            // its logical volume
-                 "Drift",            // its name
-                 layerLV,          // its mother  volume
+                 G4ThreeVector(0., 0., -layerThickness1/2 + airGapThickness + absoThickness1 + airGapThickness + DriftThickness/2), // its position
+                 DriftBoardLV1,            // its logical volume
+                 "Drift1",            // its name
+                 layerLV1,          // its mother  volume
                  false,            // no boolean operation
                  0,                // copy number
                  fCheckOverlaps);  // checking overlaps
@@ -340,22 +395,22 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes()
   //
   // Gap
   //
-  auto gapS
+  auto gapS1
     = new G4Box("Gap",             // its name
                 cellSizeXY/2, cellSizeXY/2, gapThickness/2); // its size
 
-  auto gapLV
+  auto gapLV1
     = new G4LogicalVolume(
-                 gapS,             // its solid
+                 gapS1,             // its solid
                  gapMaterial,      // its material
-                 "GapLV");         // its name
+                 "GapLV1");         // its name
 
   new G4PVPlacement(
                  0,                // no rotation
-                 G4ThreeVector(0., 0.,-layerThickness/2 + absoThickness + DriftThickness + gapThickness/2), // its position
-                 gapLV,            // its logical volume
-                 "Gap",            // its name
-                 layerLV,          // its mother  volume
+                 G4ThreeVector(0., 0.,-layerThickness1/2 + airGapThickness + absoThickness1 + airGapThickness + DriftThickness + gapThickness/2), // its position
+                 gapLV1,            // its logical volume
+                 "Gap1",            // its name
+                 layerLV1,          // its mother  volume
                  false,            // no boolean operation
                  0,                // copy number
                  fCheckOverlaps);  // checking overlaps
@@ -364,25 +419,265 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes()
    // RO board with PCB
    //
    
-   auto ROboard
-     = new G4Box("ReadOut",	//its name
+   auto ROboard1
+     = new G4Box("ReadOut1",	//its name
      		 cellSizeXY/2, cellSizeXY/2, PCBThickness/2); //its size
      		 
-   auto ROboardLV
+   auto ROboardLV1
     = new G4LogicalVolume(
-                 ROboard,             // its solid
+                 ROboard1,             // its solid
                  PCBMaterial,         // its material
-                 "ROBoardLV");        // its name
+                 "ROBoardLV1");        // its name
 
    new G4PVPlacement(
                  0,                // no rotation
-                 G4ThreeVector(0., 0.,-layerThickness/2 + absoThickness + DriftThickness + gapThickness + PCBThickness/2), // its position
-                 ROboardLV,            // its logical volume
-                 "ReadOut",            // its name
-                 layerLV,          // its mother  volume
+                 G4ThreeVector(0., 0.,-layerThickness1/2 + airGapThickness + absoThickness1 + airGapThickness + DriftThickness + gapThickness + PCBThickness/2), // its position
+                 ROboardLV1,            // its logical volume
+                 "ReadOut1",            // its name
+                 layerLV1,          // its mother  volume
                  false,            // no boolean operation
                  0,                // copy number
                  fCheckOverlaps);  // checking overlaps
+                 
+                 
+  /////////////
+  //different absorber thickness 
+  /////////////
+  
+  //
+  // Calorimeter
+  //
+  auto calorimeterS2
+    = new G4Box("Calorimeter2",     // its name
+                 calorSizeXY2/2, calorSizeXY2/2, calorThickness2/2); // its size
+
+  auto calorLV2
+    = new G4LogicalVolume(
+                 calorimeterS2,     // its solid
+                 defaultMaterial,  // its material
+                 "Calorimeter2",     // its name
+                  0, 0, 0);
+
+  new G4PVPlacement(
+                 0,                // no rotation
+                 G4ThreeVector(0,0, calorThickness1/2 + calorThickness2/2),  // at (0,0,0)
+                 calorLV2,          // its logical volume
+                 "Calorimeter2",    // its name
+                 worldLV,          // its mother  volume
+                 false,            // no boolean operation
+                 0,                // copy number
+                 fCheckOverlaps);  // checking overlaps
+
+    //fScoringVolume = calorLV;
+
+    //
+    // Row plane - Y Slice
+    //
+    auto rowS2
+      = new G4Box("Row2",           // its name
+                   calorSizeXY2/2, cellSizeXY/2, calorThickness2/2); //its size
+
+    auto rowLV2
+      = new G4LogicalVolume(
+                   rowS2,           // its solid
+                   defaultMaterial,  // its material
+                   "Row2");         // its name
+
+    new G4PVReplica(
+                   "Row2",          // its name
+                   rowLV2,          // its logical volume
+                   calorLV2,          // its mother
+                   kYAxis,           // axis of replication
+                   fNofPixelsXY2,        // number of replica
+                   cellSizeXY);  // witdth of replica
+    
+    //
+    // Columns  - X Slice
+    //
+    auto cellS2
+      = new G4Box("Cell2",           // its name
+                   cellSizeXY/2, cellSizeXY/2, calorThickness2/2); //its size
+
+    auto cellLV2
+      = new G4LogicalVolume(
+                   cellS2,           // its solid
+                   defaultMaterial,  // its material
+                   "Cell2");         // its name
+
+    new G4PVReplica(
+                   "Cell2",          // its name
+                   cellLV2,          // its logical volume
+                   rowLV2,          // its mother
+                   kXAxis,           // axis of replication
+                   fNofPixelsXY2,        // number of replica
+                   cellSizeXY);  // witdth of replica
+ 
+  //
+  // Layer
+  //
+  auto layerS2
+    = new G4Box("Layer2",           // its name
+                 cellSizeXY/2, cellSizeXY/2, layerThickness2/2); //its size
+
+  auto layerLV2
+    = new G4LogicalVolume(
+                 layerS2,           // its solid
+                 defaultMaterial,  // its material
+                 "Layer2");         // its name
+
+  new G4PVReplica(
+                 "Layer2",          // its name
+                 layerLV2,          // its logical volume
+                 cellLV2,          // its mother
+                 kZAxis,           // axis of replication
+                 fNofLayers2,        // number of replica
+                 layerThickness2);  // witdth of replica
+                 
+     //
+  // Air gap
+  //
+  auto airGap2
+    = new G4Box("airGap2",            // its name
+                cellSizeXY/2, cellSizeXY/2, airGapThickness/2); // its size
+
+  auto airGapLV2
+    = new G4LogicalVolume(
+                 airGap2,        // its solid
+                 air,		 // its material
+                 "airGapLV2");        // its name
+
+   new G4PVPlacement(
+                 0,                // no rotation
+                 G4ThreeVector(0., 0., -layerThickness2/2 + airGapThickness/2), // its position
+                 airGapLV2,       // its logical volume
+                 "airGapLV2",           // its name
+                 layerLV2,          // its mother  volume
+                 false,            // no boolean operation
+                 0,                // copy number
+                 fCheckOverlaps);  // checking overlaps
+
+
+  //
+  // Absorber
+  //
+  auto absorberS2
+    = new G4Box("Abso2",            // its name
+                cellSizeXY/2, cellSizeXY/2, absoThickness2/2); // its size
+
+  auto absorberLV2
+    = new G4LogicalVolume(
+                 absorberS2,        // its solid
+                 absorberMaterial, // its material
+                 "AbsoLV2");        // its name
+
+//-layerThickness1/2 + absoThickness1 + DriftThickness + gapThickness + PCBThickness/2
+   new G4PVPlacement(
+                 0,                // no rotation
+                 G4ThreeVector(0., 0., -layerThickness2/2 + airGapThickness + absoThickness2/2), // its position
+                 //G4ThreeVector(0., 0., -layerThickness1/2 + absoThickness1 + DriftThickness + gapThickness + PCBThickness -layerThickness2/2 + absoThickness2/2), // its position
+                 absorberLV2,       // its logical volume
+                 "Abso2",           // its name
+                 layerLV2,          // its mother  volume
+                 false,            // no boolean operation
+                 0,                // copy number
+                 fCheckOverlaps);  // checking overlaps
+  
+      //
+  // Air gap
+  //
+  auto airGap2_2
+    = new G4Box("airGap2_2",            // its name
+                cellSizeXY/2, cellSizeXY/2, airGapThickness/2); // its size
+
+  auto airGapLV2_2
+    = new G4LogicalVolume(
+                 airGap2_2,        // its solid
+                 air,		 // its material
+                 "airGapLV2_2");        // its name
+
+   new G4PVPlacement(
+                 0,                // no rotation
+                 G4ThreeVector(0., 0., -layerThickness2/2 + airGapThickness + absoThickness2 + airGapThickness/2), // its position
+                 airGapLV2_2,       // its logical volume
+                 "airGapLV2_2",           // its name
+                 layerLV2,          // its mother  volume
+                 false,            // no boolean operation
+                 0,                // copy number
+                 fCheckOverlaps);  // checking overlaps
+  
+  //
+  // Copper Drift
+  //
+    auto DriftBoard2
+    = new G4Box("Drift2",             // its name
+                cellSizeXY/2, cellSizeXY/2, DriftThickness/2); // its size
+
+  auto DriftBoardLV2
+    = new G4LogicalVolume(
+                 DriftBoard2,             // its solid
+                 PCBMaterial,      // its material
+                 "driftBoardLV2");         // its name
+
+  new G4PVPlacement(
+                 0,                // no rotation
+                 G4ThreeVector(0., 0., -layerThickness2/2 + airGapThickness + absoThickness2 + airGapThickness + DriftThickness/2), // its position
+                 //G4ThreeVector(0., 0., -layerThickness1/2 + absoThickness1 + DriftThickness + gapThickness + PCBThickness -layerThickness2/2 + absoThickness2 + DriftThickness/2), // its position
+                 DriftBoardLV2,            // its logical volume
+                 "Drift2",            // its name
+                 layerLV2,          // its mother  volume
+                 false,            // no boolean operation
+                 0,                // copy number
+                 fCheckOverlaps);  // checking overlaps
+
+  //
+  // Gap
+  //
+  auto gapS2
+    = new G4Box("Gap2",             // its name
+                cellSizeXY/2, cellSizeXY/2, gapThickness/2); // its size
+
+  auto gapLV2
+    = new G4LogicalVolume(
+                 gapS2,             // its solid
+                 gapMaterial,      // its material
+                 "GapLV2");         // its name
+
+  new G4PVPlacement(
+                 0,                // no rotation
+                 G4ThreeVector(0., 0., -layerThickness2/2 + airGapThickness + absoThickness2 + airGapThickness + DriftThickness + gapThickness/2), // its position
+                 //G4ThreeVector(0., 0.,-layerThickness1/2 + absoThickness1 + DriftThickness + gapThickness + PCBThickness -layerThickness2/2 + absoThickness2  + DriftThickness + gapThickness/2), // its position
+                 gapLV2,            // its logical volume
+                 "Gap2",            // its name
+                 layerLV2,          // its mother  volume
+                 false,            // no boolean operation
+                 0,                // copy number
+                 fCheckOverlaps);  // checking overlaps
+                 
+   //
+   // RO board with PCB
+   //
+   
+   auto ROboard2
+     = new G4Box("ReadOut2",	//its name
+     		 cellSizeXY/2, cellSizeXY/2, PCBThickness/2); //its size
+     		 
+   auto ROboardLV2
+    = new G4LogicalVolume(
+                 ROboard2,             // its solid
+                 PCBMaterial,         // its material
+                 "ROBoardLV2");        // its name
+
+   new G4PVPlacement(
+                 0,                // no rotation
+                 G4ThreeVector(0., 0., -layerThickness2/2 + airGapThickness + absoThickness2 + airGapThickness + DriftThickness + gapThickness + PCBThickness/2), // its position
+                // G4ThreeVector(0., 0.,-layerThickness1/2 + absoThickness1 + DriftThickness + gapThickness + PCBThickness -layerThickness2/2 + absoThickness2 + DriftThickness + gapThickness + PCBThickness/2), // its position
+                 ROboardLV2,            // its logical volume
+                 "ReadOut2",            // its name
+                 layerLV2,          // its mother  volume
+                 false,            // no boolean operation
+                 0,                // copy number
+                 fCheckOverlaps);  // checking overlaps
+                 
    
   //
   // print parameters
@@ -390,8 +685,8 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes()
   G4cout
     << G4endl
     << "------------------------------------------------------------" << G4endl
-    << "---> The calorimeter is " << fNofLayers << " layers of: [ "
-    << absoThickness/mm << "mm of " << absorberMaterial->GetName()
+    << "---> The calorimeter is " << fNofLayers1 << " layers of: [ "
+    << absoThickness1/mm << "mm of " << absorberMaterial->GetName()
     << " + "
     << gapThickness/mm << "mm of " << gapMaterial->GetName() << " ] " << G4endl
     << "------------------------------------------------------------" << G4endl;
@@ -403,23 +698,28 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes()
 
   auto simpleBoxVisAtt= new G4VisAttributes(G4Colour(1.0,1.0,1.0));
   simpleBoxVisAtt->SetVisibility(false);
-  calorLV->SetVisAttributes(simpleBoxVisAtt);
+  calorLV1->SetVisAttributes(simpleBoxVisAtt);
+  calorLV2->SetVisAttributes(simpleBoxVisAtt);
 
   auto absVisAtt= new G4VisAttributes(G4Colour(1.0, 0.0, 0.0));
   absVisAtt->SetVisibility(true);
-  absorberLV->SetVisAttributes(absVisAtt);
+  absorberLV1->SetVisAttributes(absVisAtt);
+  absorberLV2->SetVisAttributes(absVisAtt);
     
   auto gapVisAtt= new G4VisAttributes(G4Colour(0.0, 0.0, 1.0));
   gapVisAtt->SetVisibility(true);
-  gapLV->SetVisAttributes(gapVisAtt);
+  gapLV1->SetVisAttributes(gapVisAtt);
+  gapLV2->SetVisAttributes(gapVisAtt);
 
   auto PCBVisAtt= new G4VisAttributes(G4Color(1.0,1.0,0.0, 0.5));
   PCBVisAtt->SetVisibility(true);
-  ROboardLV->SetVisAttributes(PCBVisAtt);
+  ROboardLV1->SetVisAttributes(PCBVisAtt);
+  ROboardLV2->SetVisAttributes(PCBVisAtt);
   
   auto DriftVisAtt= new G4VisAttributes(G4Colour(0.0, 2.0, 0.0));
   DriftVisAtt->SetVisibility(true);
-  DriftBoardLV->SetVisAttributes(DriftVisAtt);
+  DriftBoardLV1->SetVisAttributes(DriftVisAtt);
+  DriftBoardLV2->SetVisAttributes(DriftVisAtt);
 
   //
   // Always return the physical World
@@ -431,8 +731,8 @@ G4VPhysicalVolume* DetectorConstruction::DefineVolumes()
     // logical volume
     //
     // Sets a max step length in the tracker region, with G4StepLimiter
-    G4double maxStep = 0.5*gapThickness;
-    fStepLimit = new G4UserLimits(maxStep);
+ //   G4double maxStep = 0.5*gapThickness;
+ //   fStepLimit= new G4UserLimits(maxStep);
     //logicSheet->SetUserLimits(fStepLimit);
     
   
@@ -449,16 +749,24 @@ void DetectorConstruction::ConstructSDandField()
   // Sensitive detectors
   //
   auto absoSD
-    = new CalorimeterSD("AbsorberSD", "AbsorberHitsCollection", fNofLayers);
+    = new CalorimeterSD("AbsorberSD", "AbsorberHitsCollection");
+   // = new CalorimeterSD("AbsorberSD", "AbsorberHitsCollection", fNofLayers1);
   G4SDManager::GetSDMpointer()->AddNewDetector(absoSD);
-  SetSensitiveDetector("AbsoLV",absoSD);
-  SetSensitiveDetector("driftBoardLV",absoSD);
-  SetSensitiveDetector("ROBoardLV",absoSD);
+  SetSensitiveDetector("AbsoLV1",absoSD);
+  SetSensitiveDetector("driftBoardLV1",absoSD);
+  SetSensitiveDetector("ROBoardLV1",absoSD);
+  
+  SetSensitiveDetector("AbsoLV2",absoSD);
+  SetSensitiveDetector("driftBoardLV2",absoSD);
+  SetSensitiveDetector("ROBoardLV2",absoSD);
 
   auto gapSD
-    = new CalorimeterSD("GapSD", "GapHitsCollection", fNofLayers);
+      = new CalorimeterSD("GapSD", "GapHitsCollection");
+      //= new CalorimeterSD("GapSD", "GapHitsCollection", fNofLayers1);
   G4SDManager::GetSDMpointer()->AddNewDetector(gapSD);
-  SetSensitiveDetector("GapLV",gapSD);
+  SetSensitiveDetector("GapLV1",gapSD);
+  SetSensitiveDetector("GapLV2",gapSD);
+  //SetSensitiveDetector("GapLV1",gapSD);
   //
   // Magnetic field
   //
@@ -474,10 +782,10 @@ void DetectorConstruction::ConstructSDandField()
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-
+/*
 void DetectorConstruction::SetMaxStep(G4double maxStep)
 {
   if ((fStepLimit)&&(maxStep>0.)) fStepLimit->SetMaxAllowedStep(maxStep);
 }
-
+*/
 }

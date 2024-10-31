@@ -71,7 +71,7 @@ RunAction::RunAction(EventAction* eventAction)
   analysisManager->CreateH1("Egap","Edep in gap", 1000, 0., 10*MeV); //Hist ID 1
   analysisManager->CreateH1("Labs","trackL in absorber", 10000, 0., 100*m); //Hist ID 2
   analysisManager->CreateH1("Lgap","trackL in gap", 10000, 0., 10*m); //Hist ID 3
-  analysisManager->CreateH1("nHits","Number of hits", B4c::fNofPixelsXY*B4c::fNofPixelsXY*B4c::fNofLayers, 0, B4c::fNofPixelsXY*B4c::fNofPixelsXY*B4c::fNofLayers); //Hist ID 4
+  //analysisManager->CreateH1("nHits","Number of hits", B4c::fNofPixelsXY*B4c::fNofPixelsXY*B4c::fNofLayers, 0, B4c::fNofPixelsXY*B4c::fNofPixelsXY*B4c::fNofLayers); //Hist ID 4
 
   // Creating ntuple per event
   //

@@ -48,12 +48,13 @@ namespace B4c
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 CalorimeterSD::CalorimeterSD(const G4String& name,
-                             const G4String& hitsCollectionName,
-                             G4int nofLayers)
- : G4VSensitiveDetector(name),
-   fNofLayers(nofLayers)
+                             const G4String& hitsCollectionName)//,
+                             //G4int nofLayers)
+ : G4VSensitiveDetector(name) //,
+   //fNofLayers(nofLayers)
 {
   collectionName.insert(hitsCollectionName);
+   
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -74,10 +75,12 @@ void CalorimeterSD::Initialize(G4HCofThisEvent* hce)
   auto hcID
     = G4SDManager::GetSDMpointer()->GetCollectionID(collectionName[0]);
   hce->AddHitsCollection( hcID, fHitsCollection );
+  
 
   // Create hits
   // fill calorimeter hits with zero energy deposition
   // nPixelX*nPixelY*(fNofLayers for layers + one more for total sums)
+  /*
  for (auto column=0; column<fNofPixelsXY; column++) {
      for (auto row=0; row<fNofPixelsXY; row++) {
          for (G4int i=0; i<fNofLayers; i++ ) {
@@ -85,7 +88,7 @@ void CalorimeterSD::Initialize(G4HCofThisEvent* hce)
          }
      }
   }
-    
+   */
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -123,7 +126,7 @@ G4bool CalorimeterSD::ProcessHits(G4Step* step,
   if ( edep==0. && stepLength == 0. ) return false; 
 
   auto touchable = (step->GetPreStepPoint()->GetTouchable());
-
+ //  G4cout << "touchable volume " << touchable->GetVolume()->GetName() << " touchable layer " << touchable->GetReplicaNumber(1) << " touchable column " << touchable->GetReplicaNumber(2) << " touchable row " << touchable->GetReplicaNumber(3)<< G4endl;
   // Get calorimeter cell id
     //placement tree: what’s called the touchable’s “history”
     //touchable->GetCopyNumber(), you can get the cell copy number ?
@@ -138,13 +141,19 @@ G4bool CalorimeterSD::ProcessHits(G4Step* step,
   auto rowNo = touchable->GetReplicaNumber(3);
   auto columnNo = touchable->GetReplicaNumber(2);
   auto layerNumber = touchable->GetReplicaNumber(1);
-  G4int hitID = rowNo*fNofPixelsXY*fNofLayers+columnNo*fNofLayers+layerNumber; //iy*fNx*fNz+ix*fNz+iz;
+  G4int hitID = rowNo*fNofPixelsXY1*fNofLayers+columnNo*fNofLayers+layerNumber;
+  if(touchable->GetVolume()->GetName().contains("2")){
+	 layerNumber = touchable->GetReplicaNumber(1) + fNofLayers1;
+   	 hitID = rowNo*fNofPixelsXY2*fNofLayers+columnNo*fNofLayers+layerNumber;
+  } //iy*fNx*fNz+ix*fNz+iz;
   //auto hitID = rowNo*fNofPixelsXY*(fNofLayers+1)+columnNo*(fNofLayers+1)+layerNumber;
   
   // Get hit accounting data for this cell
   //auto hit = (*fHitsCollection)[layerNumber];
-  auto hit = (*fHitsCollection)[hitID];
-    
+  // auto hit = (*fHitsCollection)[hitID];  
+  
+   auto hit = new CalorHit();
+   
   if ( ! hit ) {
     G4ExceptionDescription msg;
     msg << "Cannot access hit " << hitID;
@@ -158,20 +167,23 @@ G4bool CalorimeterSD::ProcessHits(G4Step* step,
     hit->SetColumnID(columnNo);
     hit->SetLayerID(layerNumber);
     auto depth = touchable->GetHistory()->GetDepth(); //how many level deep in the current tree the volume is
-    //G4cout<< " depth "<<depth<< G4endl; // depth = 5
+      //G4cout<< " depth "<<depth<< G4endl; // depth = 5
     auto transform = touchable->GetHistory()->GetTransform(depth); //GetTransform(depth) gives the position of the egas or abs cell
-    //GetTransform(depth-1) gives the position of the abs+gas cell (bigger cell in the "layer partition")
+      ////GetTransform(depth-1) gives the position of the abs+gas cell (bigger cell in the "layer partition")
     transform.Invert();
     hit->SetRot(transform.NetRotation());
     hit->SetPos(transform.NetTranslation());
+    hit->SetPosition(step->GetPreStepPoint()->GetPosition());
     hit->SetTime(step->GetPreStepPoint()->GetGlobalTime());
     hit->SetTimeLoc(step->GetPreStepPoint()->GetLocalTime());
     hit->SetParticleID(particlePDG);
+    hit->SetTrack(trackID);
   }
     
+    //(*fHitsCollection)[hitID]->insert( hit );
     
     
-  //Get hit for total accounting
+  // Get hit for total accounting
   //auto hitIDTotal = rowNo*fNofPixelsXY*(fNofLayers+1)+columnNo*(fNofLayers+1)+fNofLayers; //fNofLayers is the layer ID of the last plane
   //auto hitTotal = (*fHitsCollection)[hitIDTotal];
   //?il totale va tutto in una cella?//
@@ -179,11 +191,24 @@ G4bool CalorimeterSD::ProcessHits(G4Step* step,
 
   // Add values
   hit->Add(edep, stepLength);
-  //hitTotal->Add(edep, stepLength);
-  // add energy deposition
-  //hit->AddEdep(edep);
+  fHitsCollection->insert( hit );
+ 
+ // if(eventID < 100) G4cout << " EventID " << eventID << " Track " << trackID << " StepID " << stepID << " Edep " << G4BestUnit(edepStep, "Energy") << " Particle " << particlePDG << " Position " << G4BestUnit(Position, "Length") << " stepLentgh " << G4BestUnit(step->GetStepLength(), "Length") << " Row " << rowNo << " Column " << columnNo << " Layer " << layerNumber << G4endl;
+  
+/*
+if(Position[2] < -95 && Position[2] >-100) G4cout << " Layer 1 EventID " << eventID << " Track " << trackID << " StepID " << stepID << " Edep " << G4BestUnit(edepStep, "Energy") << " Particle " << particlePDG << " Position " << G4BestUnit(Position, "Length") << " stepLentgh " << G4BestUnit(step->GetStepLength(), "Length") << " Row " << rowNo << " Column " << columnNo << G4endl;
+
+if(Position[2] >-53 && Position[2] < -48) G4cout << " Layer 2 EventID " << eventID << " Track " << trackID << " StepID " << stepID << " Edep " << G4BestUnit(edepStep, "Energy") << " Particle " << particlePDG << " Position " << G4BestUnit(Position, "Length") << " stepLentgh " << G4BestUnit(step->GetStepLength(), "Length") << " Row " << rowNo << " Column " << columnNo << G4endl;
 
 
+if(Position[2]>-6 && Position[2] < -1) G4cout << " Layer 3 EventID " << eventID << " Track " << trackID << " StepID " << stepID << " Edep " << G4BestUnit(edepStep, "Energy") << " Particle " << particlePDG << " Position " << G4BestUnit(Position, "Length") << " stepLentgh " << G4BestUnit(step->GetStepLength(), "Length") << " Row " << rowNo << " Column " << columnNo << G4endl;
+
+if(Position[2]>41 && Position[2] < 46) G4cout << " Layer 4 EventID " << eventID << " Track " << trackID << " StepID " << stepID << " Edep " << G4BestUnit(edepStep, "Energy") << " Particle " << particlePDG << " Position " << G4BestUnit(Position, "Length") << " stepLentgh " << G4BestUnit(step->GetStepLength(), "Length") << " Row " << rowNo << " Column " << columnNo << G4endl;
+
+if(Position[2]>88 && Position[2] < 93) G4cout << " Layer 5 EventID " << eventID << " Track " << trackID << " StepID " << stepID << " Edep " << G4BestUnit(edepStep, "Energy") << " Particle " << particlePDG << " Position " << G4BestUnit(Position, "Length") << " stepLentgh " << G4BestUnit(step->GetStepLength(), "Length") << " Row " << rowNo << " Column " << columnNo << G4endl;
+
+if(Position[2]>135 && Position[2] < 140) G4cout << " Layer 6 EventID " << eventID << " Track " << trackID << " StepID " << stepID << " Edep " << G4BestUnit(edepStep, "Energy") << " Particle " << particlePDG << " Position " << G4BestUnit(Position, "Length") << " stepLentgh " << G4BestUnit(step->GetStepLength(), "Length") << " Row " << rowNo << " Column " << columnNo << G4endl;
+*/
   return true;
 }
 
@@ -197,7 +222,7 @@ void CalorimeterSD::EndOfEvent(G4HCofThisEvent*)
        << G4endl
        << "-------->Hits Collection: in this event they are " << nofHits
        << " hits in the tracker chambers: " << G4endl;
-     for ( std::size_t i=0; i<nofHits; ++i ) (*fHitsCollection)[i]->Print();
+    // for ( std::size_t i=0; i<nofHits; ++i ) (*fHitsCollection)[i]->Print();
   }
 }
 

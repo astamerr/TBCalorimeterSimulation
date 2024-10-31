@@ -36,24 +36,26 @@
 namespace B4c
 {
 
-//constexpr G4int kNofHodoscopes1 = 15;
-//constexpr G4int kNofHodoscopes2 = 25;
-//constexpr G4int kNofChambers = 5;
-//constexpr G4int kNofEmColumns = 20;
-//constexpr G4int kNofEmRows = 4;
-//constexpr G4int kNofEmCells = kNofEmColumns * kNofEmRows;
-//constexpr G4int kNofHadColumns = 10;
-//constexpr G4int kNofHadRows = 2;
-//constexpr G4int kNofHadCells = kNofHadColumns * kNofHadRows;./
-constexpr G4int  fNofLayers = 6; //for TB prototype 6-12 -- for Large Prototype 50 
-constexpr G4int  fNofPixelsXY = 20; //for TB prototype 20 -- for Large Prototype 100
+// Quantities with "1" refer to the first part of the calorimeter (6-8 layers of 20x20 on xy) and those with "2" refer to the second (4 layers of 50x50)
+
+constexpr G4int  fNofLayers1 = 6; //for TB prototype 6-12; 
+constexpr G4double absoThickness1 = 20.*mm; //100.*mm;
+
+constexpr G4int  fNofLayers2 = 4; //for TB prototype 6-12; 
+constexpr G4double absoThickness2 = 20.*mm; //100.*mm;
+
+constexpr G4int fNofLayers = fNofLayers1 + fNofLayers2;
+
+constexpr G4int  fNofPixelsXY1 = 20; //for TB prototype 20;
+constexpr G4int  fNofPixelsXY2 = 50;
+
 constexpr G4double cellSizeXY  = 1.*cm; //1.*cm;
-constexpr G4double absoThickness = 40.*mm; // for TB prototype 4 cm
-constexpr G4double gapThickness =  6.*mm;// for TB prototype 6 mm
 
-constexpr G4double PCBThickness = 1*mm;
-constexpr G4double DriftThickness = 1*mm;
+constexpr G4double gapThickness = 6.*mm;//100.*mm;
+constexpr G4double PCBThickness = 3*mm;
+constexpr G4double DriftThickness = 3*mm;
 
+constexpr G4double airGapThickness = 1*cm;
 //layerThickness = absoThickness + gapThickness;
 //calorSizeXY  = cellSizeXY * fNofPixelsXY; //10.*cm; //
 //calorThickness = fNofLayers * layerThickness;

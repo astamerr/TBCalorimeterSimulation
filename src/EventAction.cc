@@ -256,7 +256,7 @@ void EventAction::EndOfEventAction(const G4Event* event)
   analysisManager->FillH1(2, absoHit->GetTrackLength());
   analysisManager->FillH1(3, gapHit->GetTrackLength());
 
-  analysisManager->FillH1(4, NHitsTOT);
+  //analysisManager->FillH1(4, NHitsTOT);
 
 }
       
